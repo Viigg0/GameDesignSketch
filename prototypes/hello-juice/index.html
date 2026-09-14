@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hello-juice · GameDesignSketch</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
+    canvas { display: block; touch-action: none; }
+    a.back {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      color: #9a9aa2;
+      font: 13px -apple-system, sans-serif;
+      text-decoration: none;
+      z-index: 10;
+    }
+    a.back:hover { color: #e0b84b; }
+    p.hint {
+      position: fixed;
+      bottom: 1rem;
+      left: 1rem;
+      color: #55555c;
+      font: 13px -apple-system, sans-serif;
+      margin: 0;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <a class="back" href="../../">← index</a>
+  <canvas id="stage"></canvas>
+  <p class="hint">click / tap anywhere</p>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
