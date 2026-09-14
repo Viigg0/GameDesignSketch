@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pedal-timing · GameDesignSketch</title>
+  <style>
+    :root {
+      --card: #17171b;
+      --border: #2a2a30;
+      --text: #eaeaea;
+      --muted: #9a9aa2;
+      --accent: #e0b84b;
+    }
+    html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
+    canvas { display: block; touch-action: none; }
+    a.back {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      color: #9a9aa2;
+      font: 13px -apple-system, sans-serif;
+      text-decoration: none;
+      z-index: 10;
+    }
+    a.back:hover { color: #e0b84b; }
+    .box {
+      position: fixed;
+      z-index: 10;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      font: 13px -apple-system, sans-serif;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .hint-box { bottom: 1rem; left: 1rem; }
+    .hud-box { bottom: 1rem; right: 1rem; min-width: 170px; }
+    .hud-box .speed-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text);
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+    .hud-bar {
+      background: var(--border);
+      border-radius: 4px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 0.6rem;
+    }
+    .hud-bar-fill {
+      background: var(--accent);
+      height: 100%;
+      width: 0%;
+    }
+    .hud-row { display: flex; justify-content: space-between; gap: 1rem; }
+  </style>
+</head>
+<body>
+  <a class="back" href="../../">← index</a>
+  <canvas id="stage"></canvas>
+
+  <div class="box hint-box">
+    hold ← / → through your pedal's arc<br>
+    ↑ / ↓ cadence · [ / ] window overlap
+  </div>
+
+  <div class="box hud-box">
+    <div class="speed-row"><span>speed</span><span id="speedVal">0</span></div>
+    <div class="hud-bar"><div class="hud-bar-fill" id="speedBar"></div></div>
+    <div class="hud-row"><span>cadence</span><span id="cadenceVal">90°/s</span></div>
+    <div class="hud-row"><span>overlap</span><span id="overlapVal">30%</span></div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

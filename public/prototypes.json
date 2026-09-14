@@ -3,5 +3,10 @@
     "slug": "hello-juice",
     "title": "hello-juice",
     "blurb": "Click anywhere: screenshake + a particle burst. The starting template for new sketches."
+  },
+  {
+    "slug": "pedal-timing",
+    "title": "pedal-timing",
+    "blurb": "A crank sweeps a circle; hit the matching arrow key on the right pedal's or left pedal's half to build speed."
   }
 ]
