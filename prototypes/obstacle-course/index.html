@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>obstacle-course · GameDesignSketch</title>
+<style>
+  :root {
+    --bg: #f4f4f1;
+    --ink: #1f2933;
+    --muted: #6b7178;
+    --border: #d8d8d3;
+    --accent: #51606D;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    padding: 1.5rem 1.5rem 2rem;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; position: relative; }
+
+  a.back {
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-decoration: none;
+  }
+  a.back:hover { color: var(--accent); }
+
+  h1 {
+    font-size: 1.4rem;
+    margin: 0.75rem 0 0.5rem;
+    color: var(--accent);
+  }
+
+  p.intro {
+    font-size: 0.9rem;
+    color: var(--ink);
+    max-width: 68ch;
+    margin: 0 0 1.25rem;
+    padding-left: 0.85rem;
+    border-left: 2px solid var(--accent);
+  }
+
+  .selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .selector button {
+    font: inherit;
+    font-size: 0.82rem;
+    padding: 0.45rem 0.85rem;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .selector button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .stage-wrap {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 340px;
+    touch-action: none;
+  }
+
+  .legend {
+    position: absolute;
+    bottom: 0.75rem;
+    left: 0.75rem;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.72rem;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .legend b { color: var(--ink); }
+
+  @media (max-width: 480px) {
+    body { padding: 1rem 1rem 1.5rem; }
+    canvas { height: 260px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../../">← index</a>
+  <h1>Obstacle Course</h1>
+  <p class="intro">Obstacles shape the ride's rhythm, they don't stop it. A miss costs a little speed or a short retry, never a hard stop. Every obstacle is evidence of something before it's a challenge, each one should imply a world around it.</p>
+
+  <div class="selector" id="selector">
+    <button data-scenario="ruins">1. Ruins Debris</button>
+    <button data-scenario="slit">2. Slit in a Hole</button>
+    <button data-scenario="jump">3. Momentum Jump</button>
+    <button data-scenario="crossing">4. Slim Crossing</button>
+    <button data-scenario="herd">5. Crossing Herd</button>
+    <button data-scenario="follower">6. Follower NPC</button>
+  </div>
+
+  <div class="stage-wrap">
+    <canvas id="stage"></canvas>
+    <div class="legend">
+      <b>↑ / ↓</b> or <b>W / S</b> steer<br>
+      <b>space</b> (hold) accelerate<br>
+      <b>shift</b> (hold) brake
+    </div>
+  </div>
+</div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>

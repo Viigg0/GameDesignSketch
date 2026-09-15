@@ -26,11 +26,38 @@
       margin: 0;
       z-index: 10;
     }
+    .about-box {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 10;
+      max-width: 260px;
+      background: #17171b;
+      border: 1px solid #2a2a30;
+      border-radius: 10px;
+      padding: 0.6rem 0.9rem;
+      font: 13px -apple-system, sans-serif;
+      color: #9a9aa2;
+    }
+    .about-box summary {
+      cursor: pointer;
+      color: #eaeaea;
+      font-weight: 600;
+      list-style: none;
+    }
+    .about-box summary::-webkit-details-marker { display: none; }
+    .about-box summary::before { content: '▸ '; color: #e0b84b; }
+    .about-box[open] summary::before { content: '▾ '; }
+    .about-box p { margin: 0.5rem 0 0; line-height: 1.5; }
   </style>
 </head>
 <body>
   <a class="back" href="../../">← index</a>
   <canvas id="stage"></canvas>
+  <details class="about-box">
+    <summary>about this sketch</summary>
+    <p>Does a click feel like it hit something? Screenshake plus a particle burst on every click -- nothing more. This is the starting template every new sketch copies from; replace this blurb with the idea being tested.</p>
+  </details>
   <p class="hint">click / tap anywhere</p>
   <script type="module" src="./main.js"></script>
 </body>

@@ -8,5 +8,10 @@
     "slug": "pedal-timing",
     "title": "pedal-timing",
     "blurb": "A crank sweeps a circle; hit the matching arrow key on the right pedal's or left pedal's half to build speed."
+  },
+  {
+    "slug": "obstacle-course",
+    "title": "obstacle-course",
+    "blurb": "Six switchable scenarios demonstrating how each vertical-slice obstacle plays: weave, brake, jump, thread, judge, and evade."
   }
 ]

@@ -35,6 +35,21 @@
       color: var(--muted);
       line-height: 1.6;
     }
+    .about-box {
+      top: 1rem;
+      right: 1rem;
+      max-width: 260px;
+    }
+    .about-box summary {
+      cursor: pointer;
+      color: var(--text);
+      font-weight: 600;
+      list-style: none;
+    }
+    .about-box summary::-webkit-details-marker { display: none; }
+    .about-box summary::before { content: '▸ '; color: var(--accent); }
+    .about-box[open] summary::before { content: '▾ '; }
+    .about-box p { margin: 0.5rem 0 0; }
     .hint-box { bottom: 1rem; left: 1rem; }
     .hud-box { bottom: 1rem; right: 1rem; min-width: 170px; }
     .hud-box .speed-row {
@@ -62,6 +77,11 @@
 <body>
   <a class="back" href="../../">← index</a>
   <canvas id="stage"></canvas>
+
+  <details class="box about-box">
+    <summary>about this sketch</summary>
+    <p>Times your pedaling: hold the matching arrow key while the crank sweeps through that pedal's arc. Alternating left and right, in time, builds the bike's speed -- miss the window and it drains instead.</p>
+  </details>
 
   <div class="box hint-box">
     hold ← / → through your pedal's arc<br>
