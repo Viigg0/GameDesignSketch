@@ -2,7 +2,8 @@
 // Feel-and-behavior reference for the six vertical-slice obstacles. Bare
 // shapes, one canvas, six switchable scenarios sharing the same player/speed/
 // scroll plumbing. Not a game -- a way to feel how each obstacle behaves
-// before any art exists for it.
+// before any art exists for it. Numbered to match the "Obstacles one pagers"
+// deck's slide order.
 
 const canvas = document.getElementById('stage')
 const ctx = canvas.getContext('2d')
@@ -128,69 +129,115 @@ const ruins = {
   },
 }
 
-// -- scenario 2: Slit in a Hole ----------------------------------------------
-// A wall with a narrow, randomly-placed gap -- mostly a steering-precision
-// check now. Speed still matters, but indirectly: steering is sluggish at
-// full speed and sharpens the harder you brake, so braking is how you buy
-// the precision to actually thread the gap rather than a pass/fail gate on
-// its own. Missing clips the wall edge (small speed cost), never a reset.
-const slit = {
-  label: 'Slit in a Hole',
-  GAP_HALF: 22,
-  RESPAWN_GAP: 620,
-  wall: null,
-  slideT: 0,
-  slideDir: 1,
-  randomizeGapY() {
-    const maxOffset = LANE_HALF - this.GAP_HALF - 6
-    return laneCenter() + (Math.random() * 2 - 1) * maxOffset
+// -- scenario 2: Slim Crossing -------------------------------------------------
+// A stretch with a much narrower dodge band, randomized in both position AND
+// width each spawn (same idea as the slit's gap) so no two crossings are
+// alike. You have to already be lined up the moment you reach it -- checked
+// once at the crossing's start, the same point-of-contact pattern as the slit
+// and the jump. Drift in wide and it fails immediately and resets to the
+// start of the crossing; get in clean and you're through, no need to hold the
+// line for the rest of the stretch.
+const crossing = {
+  label: 'Slim Crossing',
+  NARROW_HALF_MIN: 18,
+  NARROW_HALF_MAX: 36,
+  LENGTH: 320,
+  APPROACH_LEAD: 200,
+  RESPAWN_GAP: 700,
+  start: 0,
+  centerY: 0,
+  narrowHalf: 0,
+  resolved: false,
+  randomizeBand() {
+    this.narrowHalf = this.NARROW_HALF_MIN + Math.random() * (this.NARROW_HALF_MAX - this.NARROW_HALF_MIN)
+    const maxOffset = LANE_HALF - this.narrowHalf - 6
+    this.centerY = laneCenter() + (Math.random() * 2 - 1) * maxOffset
   },
   init() {
-    this.wall = { worldX: 420, resolved: false, gapY: this.randomizeGapY() }
-    this.slideT = 0
+    this.start = 420
+    this.resolved = false
+    this.randomizeBand()
   },
-  // Steering responsiveness scales with how much you've slowed down: near
-  // MAX_SPEED it's sluggish, near MIN_SPEED (hard braking) it's sharp.
-  steerMultiplier() {
-    const t = (player.speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)
-    return 1.6 - t * 1.05
-  },
-  update(dt) {
-    const w = this.wall
-    if (!w.resolved && distance >= w.worldX) {
-      w.resolved = true
-      const margin = this.GAP_HALF - PLAYER_RADIUS
-      const miss = margin <= 0 || Math.abs(player.y - w.gapY) > margin
-      if (miss) {
-        graze(10)
-        this.slideDir = player.y < w.gapY ? -1 : 1
-        this.slideT = 0.35
+  update() {
+    if (!this.resolved && distance >= this.start) {
+      this.resolved = true
+      if (Math.abs(player.y - this.centerY) > this.narrowHalf) {
+        resetToApproach(this.start - this.APPROACH_LEAD)
+        this.resolved = false
       } else {
         clearedCleanly()
       }
     }
-    if (this.slideT > 0) {
-      this.slideT = Math.max(0, this.slideT - dt)
-      const k = this.slideT / 0.35
-      player.y = w.gapY + this.slideDir * (this.GAP_HALF + 14) * Math.sin(k * Math.PI)
-    }
-    if (distance > w.worldX + 260) {
-      w.worldX = distance + this.RESPAWN_GAP
-      w.resolved = false
-      w.gapY = this.randomizeGapY()
+    const end = this.start + this.LENGTH
+    if (distance > end + 200) {
+      this.start = distance + this.RESPAWN_GAP
+      this.resolved = false
+      this.randomizeBand()
     }
   },
   draw() {
-    const w = this.wall
-    const screenX = w.worldX - distance + playerX
-    ctx.fillStyle = '#4b5563'
-    ctx.fillRect(screenX - 14, 0, 28, w.gapY - this.GAP_HALF)
-    ctx.fillRect(screenX - 14, w.gapY + this.GAP_HALF, 28, canvas.height - (w.gapY + this.GAP_HALF))
-    drawLaneGuides()
+    const end = this.start + this.LENGTH
+    const x0 = this.start - distance + playerX
+    const x1 = end - distance + playerX
+    ctx.fillStyle = 'rgba(124,58,237,0.06)'
+    ctx.fillRect(x0, this.centerY - this.narrowHalf, x1 - x0, this.narrowHalf * 2)
+    ctx.strokeStyle = '#7c3aed'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(x0, this.centerY - this.narrowHalf)
+    ctx.lineTo(x1, this.centerY - this.narrowHalf)
+    ctx.moveTo(x0, this.centerY + this.narrowHalf)
+    ctx.lineTo(x1, this.centerY + this.narrowHalf)
+    ctx.stroke()
+    drawLaneGuides(0.25)
   },
 }
 
-// -- scenario 3: Momentum Based Jump ------------------------------------------
+// -- scenario 3: Crossing Herd -------------------------------------------------
+// Small shapes crossing the lane vertically on their own clock. Brake and
+// wait, or thread the gaps -- a judgment call, not a reflex test.
+const herd = {
+  label: 'Crossing Herd',
+  worldX: 0,
+  RESPAWN_GAP: 760,
+  members: [],
+  clock: 0,
+  init() {
+    this.worldX = 480
+    this.clock = 0
+    this.members = [0, 1, 2, 3].map((i) => ({ phase: i * 1.4, laneOffset: i * 22 - 33 }))
+  },
+  update(dt) {
+    this.clock += dt
+    const screenX = this.worldX - distance + playerX
+    for (const m of this.members) {
+      const y = laneCenter() + Math.sin(this.clock * 0.9 + m.phase) * (LANE_HALF - 10)
+      const hit = circleCircleHit(playerX, player.y, PLAYER_RADIUS, screenX + m.laneOffset, y, 9)
+      if (hit && !m.hit) {
+        graze(6)
+        m.hit = true
+      } else if (!hit) {
+        m.hit = false
+      }
+    }
+    if (screenX < -80) {
+      this.worldX = distance + this.RESPAWN_GAP
+    }
+  },
+  draw() {
+    drawLaneGuides()
+    const screenX = this.worldX - distance + playerX
+    ctx.fillStyle = '#0d9488'
+    for (const m of this.members) {
+      const y = laneCenter() + Math.sin(this.clock * 0.9 + m.phase) * (LANE_HALF - 10)
+      ctx.beginPath()
+      ctx.arc(screenX + m.laneOffset, y, 9, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  },
+}
+
+// -- scenario 4: Momentum Based Jump ------------------------------------------
 // A ramp leads up to a gap in the road. Hold accelerate to clear the speed
 // threshold before you reach the lip; enough speed auto-launches an arc over
 // the gap onto a matching landing ramp, otherwise you drop short and reset to
@@ -198,21 +245,24 @@ const slit = {
 // directly (side-view terrain-follow), not a floating dodge position.
 const jump = {
   label: 'Momentum Based Jump',
-  THRESHOLD: 55,
+  THRESHOLD: 60,
   APPROACH_LEAD: 260,
   RESPAWN_GAP: 640,
   RAMP_LENGTH: 90,
   RAMP_HEIGHT: 42,
   GAP_WIDTH: 130,
-  FALL_DURATION: 0.4,
+  FALL_DURATION: 0.45,
   controlsPlayerY: true,
   gap: null,
   arcActive: false,
   fallT: 0,
+  fallTravelFraction: 0, // how much of the gap you carry into before dropping, set from speed at the moment you fail
+  fallOffsetX: 0,
   init() {
     this.gap = { worldX: 460, resolved: false }
     this.arcActive = false
     this.fallT = 0
+    this.fallOffsetX = 0
   },
   // Height offset relative to the flat ground line: 0 on flat ground,
   // negative while rising up the ramp / airborne over the gap.
@@ -239,6 +289,9 @@ const jump = {
   isScrollFrozen() {
     return this.fallT > 0
   },
+  playerXOffset() {
+    return this.fallOffsetX
+  },
   update(dt) {
     const g = this.gap
     const groundY = laneCenter() + LANE_HALF
@@ -250,16 +303,22 @@ const jump = {
         clearedCleanly()
       } else {
         this.fallT = this.FALL_DURATION
+        // Near the threshold -> carries further out over the gap before dropping
+        // (looks like an almost-clear). Well under it -> barely leaves the ramp.
+        this.fallTravelFraction = Math.max(0.12, player.speed / this.THRESHOLD)
       }
     }
 
     if (this.fallT > 0) {
       this.fallT = Math.max(0, this.fallT - dt)
       const k = 1 - this.fallT / this.FALL_DURATION
-      player.y = groundY - this.RAMP_HEIGHT + k * (this.RAMP_HEIGHT + 40)
+      // Carried forward quickly on remaining momentum, then gravity takes over.
+      this.fallOffsetX = this.fallTravelFraction * this.GAP_WIDTH * Math.min(1, k * 1.8)
+      player.y = groundY - this.RAMP_HEIGHT + Math.pow(k, 1.6) * (this.RAMP_HEIGHT + 46)
       if (this.fallT === 0) {
         resetToApproach(g.worldX - this.APPROACH_LEAD)
         this.arcActive = false
+        this.fallOffsetX = 0
       }
     } else {
       player.y = groundY + this.groundOffsetAt(distance)
@@ -316,99 +375,72 @@ const jump = {
   },
 }
 
-// -- scenario 4: Slim Crossing -------------------------------------------------
-// A stretch with a much narrower dodge band. You have to already be lined up
-// the moment you reach it -- checked once at the crossing's start, the same
-// point-of-contact pattern as the slit and the jump. Drift in wide and it
-// fails immediately and resets to the start of the crossing; get in clean and
-// you're through, no need to hold the line for the rest of the stretch.
-const crossing = {
-  label: 'Slim Crossing',
-  NARROW_HALF: 26,
-  LENGTH: 320,
-  APPROACH_LEAD: 200,
-  RESPAWN_GAP: 700,
-  start: 0,
-  resolved: false,
-  init() {
-    this.start = 420
-    this.resolved = false
+// -- scenario 5: Slit in a Hole ----------------------------------------------
+// A wall with a narrow gap, randomized in both position AND size each spawn
+// so no two are alike -- mostly a steering-precision check now. Speed still
+// matters, but indirectly: steering is sluggish at full speed and sharpens
+// the harder you brake, so braking is how you buy the precision to actually
+// thread the gap rather than a pass/fail gate on its own. Missing clips the
+// wall edge (small speed cost), never a reset.
+const slit = {
+  label: 'Slit in a Hole',
+  GAP_HALF_MIN: 16,
+  GAP_HALF_MAX: 30,
+  RESPAWN_GAP: 620,
+  wall: null,
+  slideT: 0,
+  slideDir: 1,
+  randomizeGapHalf() {
+    return this.GAP_HALF_MIN + Math.random() * (this.GAP_HALF_MAX - this.GAP_HALF_MIN)
   },
-  update() {
-    if (!this.resolved && distance >= this.start) {
-      this.resolved = true
-      if (Math.abs(player.y - laneCenter()) > this.NARROW_HALF) {
-        resetToApproach(this.start - this.APPROACH_LEAD)
-        this.resolved = false
+  randomizeGapY(gapHalf) {
+    const maxOffset = LANE_HALF - gapHalf - 6
+    return laneCenter() + (Math.random() * 2 - 1) * maxOffset
+  },
+  spawnWall(worldX) {
+    const gapHalf = this.randomizeGapHalf()
+    return { worldX, resolved: false, gapHalf, gapY: this.randomizeGapY(gapHalf) }
+  },
+  init() {
+    this.wall = this.spawnWall(420)
+    this.slideT = 0
+  },
+  // Steering responsiveness scales with how much you've slowed down: near
+  // MAX_SPEED it's sluggish, near MIN_SPEED (hard braking) it's sharp.
+  steerMultiplier() {
+    const t = (player.speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)
+    return 1.6 - t * 1.05
+  },
+  update(dt) {
+    const w = this.wall
+    if (!w.resolved && distance >= w.worldX) {
+      w.resolved = true
+      const margin = w.gapHalf - PLAYER_RADIUS
+      const miss = margin <= 0 || Math.abs(player.y - w.gapY) > margin
+      if (miss) {
+        graze(10)
+        this.slideDir = player.y < w.gapY ? -1 : 1
+        this.slideT = 0.35
       } else {
         clearedCleanly()
       }
     }
-    const end = this.start + this.LENGTH
-    if (distance > end + 200) {
-      this.start = distance + this.RESPAWN_GAP
-      this.resolved = false
+    if (this.slideT > 0) {
+      this.slideT = Math.max(0, this.slideT - dt)
+      const k = this.slideT / 0.35
+      player.y = w.gapY + this.slideDir * (w.gapHalf + 14) * Math.sin(k * Math.PI)
+    }
+    if (distance > w.worldX + 260) {
+      this.wall = this.spawnWall(distance + this.RESPAWN_GAP)
     }
   },
   draw() {
-    const end = this.start + this.LENGTH
-    const x0 = this.start - distance + playerX
-    const x1 = end - distance + playerX
-    ctx.fillStyle = 'rgba(124,58,237,0.06)'
-    ctx.fillRect(x0, laneCenter() - this.NARROW_HALF, x1 - x0, this.NARROW_HALF * 2)
-    ctx.strokeStyle = '#7c3aed'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.moveTo(x0, laneCenter() - this.NARROW_HALF)
-    ctx.lineTo(x1, laneCenter() - this.NARROW_HALF)
-    ctx.moveTo(x0, laneCenter() + this.NARROW_HALF)
-    ctx.lineTo(x1, laneCenter() + this.NARROW_HALF)
-    ctx.stroke()
-    drawLaneGuides(0.25)
-  },
-}
-
-// -- scenario 5: Crossing Herd -------------------------------------------------
-// Small shapes crossing the lane vertically on their own clock. Brake and
-// wait, or thread the gaps -- a judgment call, not a reflex test.
-const herd = {
-  label: 'Crossing Herd',
-  worldX: 0,
-  RESPAWN_GAP: 760,
-  members: [],
-  clock: 0,
-  init() {
-    this.worldX = 480
-    this.clock = 0
-    this.members = [0, 1, 2, 3].map((i) => ({ phase: i * 1.4, laneOffset: i * 22 - 33 }))
-  },
-  update(dt) {
-    this.clock += dt
-    const screenX = this.worldX - distance + playerX
-    for (const m of this.members) {
-      const y = laneCenter() + Math.sin(this.clock * 0.9 + m.phase) * (LANE_HALF - 10)
-      const hit = circleCircleHit(playerX, player.y, PLAYER_RADIUS, screenX + m.laneOffset, y, 9)
-      if (hit && !m.hit) {
-        graze(6)
-        m.hit = true
-      } else if (!hit) {
-        m.hit = false
-      }
-    }
-    if (screenX < -80) {
-      this.worldX = distance + this.RESPAWN_GAP
-    }
-  },
-  draw() {
+    const w = this.wall
+    const screenX = w.worldX - distance + playerX
+    ctx.fillStyle = '#4b5563'
+    ctx.fillRect(screenX - 14, 0, 28, w.gapY - w.gapHalf)
+    ctx.fillRect(screenX - 14, w.gapY + w.gapHalf, 28, canvas.height - (w.gapY + w.gapHalf))
     drawLaneGuides()
-    const screenX = this.worldX - distance + playerX
-    ctx.fillStyle = '#0d9488'
-    for (const m of this.members) {
-      const y = laneCenter() + Math.sin(this.clock * 0.9 + m.phase) * (LANE_HALF - 10)
-      ctx.beginPath()
-      ctx.arc(screenX + m.laneOffset, y, 9, 0, Math.PI * 2)
-      ctx.fill()
-    }
   },
 }
 
@@ -467,7 +499,7 @@ const follower = {
   },
 }
 
-const scenarios = { ruins, slit, jump, crossing, herd, follower }
+const scenarios = { ruins, crossing, herd, jump, slit, follower }
 let active = ruins
 
 function drawLaneGuides(alpha = 0.5) {
@@ -532,9 +564,10 @@ function tick(now) {
 
   active.draw()
 
+  const drawX = playerX + (active.playerXOffset ? active.playerXOffset() : 0)
   ctx.fillStyle = hitFlash > 0 ? '#d97706' : '#1f2933'
   ctx.beginPath()
-  ctx.arc(playerX, player.y, PLAYER_RADIUS, 0, Math.PI * 2)
+  ctx.arc(drawX, player.y, PLAYER_RADIUS, 0, Math.PI * 2)
   ctx.fill()
 
   if (resetFlash > 0) {
