@@ -195,23 +195,39 @@ const crossing = {
 
 // -- scenario 3: Crossing Herd -------------------------------------------------
 // Small shapes crossing the lane vertically on their own clock. Brake and
-// wait, or thread the gaps -- a judgment call, not a reflex test.
+// wait, or thread the gaps -- a judgment call, not a reflex test. Each sheep
+// wanders independently (its own slow speed, phase, and swing), sized so the
+// herd as a whole clusters within roughly 80% of the road's width.
 const herd = {
   label: 'Crossing Herd',
   worldX: 0,
   RESPAWN_GAP: 760,
+  COUNT: 9,
+  BASE_SPEED: 0.18, // was 0.9 -- sheep-paced wandering, not darting back and forth
+  AMPLITUDE: (LANE_HALF * 2 * 0.8) / 2, // per-sheep swing, sized so the herd clusters within ~80% of the road
   members: [],
   clock: 0,
+  memberY(m) {
+    return laneCenter() + Math.sin(this.clock * this.BASE_SPEED * m.speedMult + m.phase) * this.AMPLITUDE * m.ampMult
+  },
   init() {
     this.worldX = 480
     this.clock = 0
-    this.members = [0, 1, 2, 3].map((i) => ({ phase: i * 1.4, laneOffset: i * 22 - 33 }))
+    const spacing = 22
+    const startOffset = -((this.COUNT - 1) * spacing) / 2
+    this.members = Array.from({ length: this.COUNT }, (_, i) => ({
+      laneOffset: startOffset + i * spacing,
+      phase: Math.random() * Math.PI * 2,
+      speedMult: 0.8 + Math.random() * 0.4,
+      ampMult: 0.85 + Math.random() * 0.3,
+      hit: false,
+    }))
   },
   update(dt) {
     this.clock += dt
     const screenX = this.worldX - distance + playerX
     for (const m of this.members) {
-      const y = laneCenter() + Math.sin(this.clock * 0.9 + m.phase) * (LANE_HALF - 10)
+      const y = this.memberY(m)
       const hit = circleCircleHit(playerX, player.y, PLAYER_RADIUS, screenX + m.laneOffset, y, 9)
       if (hit && !m.hit) {
         graze(6)
@@ -229,9 +245,8 @@ const herd = {
     const screenX = this.worldX - distance + playerX
     ctx.fillStyle = '#0d9488'
     for (const m of this.members) {
-      const y = laneCenter() + Math.sin(this.clock * 0.9 + m.phase) * (LANE_HALF - 10)
       ctx.beginPath()
-      ctx.arc(screenX + m.laneOffset, y, 9, 0, Math.PI * 2)
+      ctx.arc(screenX + m.laneOffset, this.memberY(m), 9, 0, Math.PI * 2)
       ctx.fill()
     }
   },
